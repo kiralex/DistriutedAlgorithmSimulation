@@ -33,9 +33,11 @@ class Node(object):
     if self.id_number > 0 and prev_val != self.val:
           self.val = prev_val
           self.printState(3)
+          print()
     if self.id_number == 0 and prev_val == self.val:
         self.val = (self.val + 1) % NB
         self.printState(3)
+        print()
 
 
 if __name__ == '__main__':
