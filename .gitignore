@@ -102,3 +102,4 @@ ENV/
 
 # Codealike conf
 codealike.json
+.vscode
