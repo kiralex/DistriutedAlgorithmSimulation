@@ -3,6 +3,7 @@
 from random import randint
 import time
 
+
 NB = 4
 
 class Node(object):

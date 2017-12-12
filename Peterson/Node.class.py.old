@@ -1,0 +1,146 @@
+#!/usr/bin/python3
+
+import random
+import asyncio
+import logging
+import coloredlogs
+import time
+import threading
+from random import randint
+from pyee import EventEmitter
+
+#  to color error and debug output
+coloredlogs.install()
+
+NB = 4
+ACTIVE = "a"
+PASSIVE = "p"
+LEADER = "l"
+BEATEN = "b"
+
+
+class Node(threading.Thread):
+    """This a class"""
+    instances = []
+    semaphoreAll = asyncio.Semaphore(NB)
+
+    def __init__(self, id_number, candidate):
+        self.id_number = id_number
+        self.c = id_number
+        self.acn = NB + 1
+        self.win = None
+        self.ee = EventEmitter()
+        if candidate:
+            self.state = ACTIVE
+        else:
+            self.state = PASSIVE
+
+        self.semaphoreOne = asyncio.Semaphore(0)
+        self.semaphoreTwo = asyncio.Semaphore(0)
+
+        @self.ee.on("one")
+        async def one(q):
+            await self.semaphoreOne.acquire()
+
+            print("I'm " + str(self.id_number) +
+                  " -- receive one by " + str(q))
+            if self.state == ACTIVE:
+                self.acn = q
+                print(self.acn)
+
+                if self.acn == self.c:
+                    print("I'm " + str(self.id_number) + " -- emit small : " +
+                          str(self.c) + " to " + str((self.id_number + 1) % NB))
+                    Node.instances[(self.id_number + 1) %
+                                   NB].ee.emit("small", self.c)
+
+                else:
+                    print("I'm " + str(self.id_number) + " -- emit two : " +
+                          str(self.acn) + " to " + str((self.id_number + 1) % NB))
+                    Node.instances[(self.id_number + 1) %
+                                    NB].ee.emit("two", (self.acn))
+
+            else:
+                print("I'm " + str(self.id_number) + " -- emit one : " +
+                      str(q) + " to " + str((self.id_number + 1) % NB))
+                Node.instances[(self.id_number + 1) % NB].ee.emit("one", (q))
+            self.semaphoreTwo.release()
+
+        @self.ee.on("small")
+        async def small(q):
+            print("I'm " + str(self.id_number) +
+                  " -- receive small by " + str(q))
+                  " -- receive small by " + str(q))
+            win=q
+                print("I'm " + str(self.id_number) + " -- emit small : " +
+                      str(q) + " to " + str((self.id_number + 1) % NB))
+                print("I'm " + str(self.id_number) + " -- emit small : " +
+                      str(q) + " to " + str((self.id_number + 1) % NB))
+                Node.instances[(self.id_number + 1) % NB].ee.emit("small", (q))
+
+            await self.run()
+
+        @self.ee.on("two")
+        async def two(q):
+            await self.semaphoreTwo.acquire()
+
+            print("I'm " + str(self.id_number) + " -- receive two by" + str(q))
+            if self.state == ACTIVE:
+
+                if self.acn < self.c and self.acn < q:
+                    self.c=self.acn
+                else:
+                    self.state=PASSIVE
+            else:
+                print("I'm " + str(self.id_number) + " -- emit two : " + \
+                      str(q) + " to " + str((self.id_number + 1) % NB))
+                Node.instances[(self.id_number + 1) % NB].ee.emit("two", (q))
+
+            await self.run()
+
+
+
+        @self.ee.on("win")
+        async def win(win):
+            print("I'm " + str(self.id_number) + \
+                  " -- receive win by " + str(win))
+            if self.id_number == win:
+                self.state=LEADER
+            else:
+                self.state=BEATEN
+
+            self.printState(3)
+
+    def printState(self, nb_tab = 0):
+        """print node state"""
+        for i in range(nb_tab):
+            print("\t", end = '')
+        print("id: " + str(self.id_number) + ", c: " + str(self.c) + ", acn: " + str(self.acn) + \
+              ", win: " + str(self.win) + ", state: " + str(self.state))
+
+    async def run(self):
+
+        print("I'm " + str(self.id_number) + " -- run")
+        await Node.semaphoreAll.acquire()
+        if self.state == ACTIVE:
+            print(
+                "I'm " + str(self.id_number) + " -- emit one : " + str(self.c) + " to " + str((self.id_number + 1) % NB))
+            Node.instances[(self.id_number + 1) % NB].ee.emit("one", self.c)
+            self.semaphoreOne.release()
+
+
+if __name__ == '__main__':
+    asyncio.Lock().acquire()
+    print("initial values : ")
+    for i in range(0, NB):
+        mytest = Node(i, True)
+        Node.instances.append(mytest)
+        mytest.printState()
+    print("=========================\n")
+
+    loop = asyncio.get_event_loop()
+    for i in random.sample(range(0, NB), NB):
+        loop.run_until_complete(Node.instances[i].run())
+        Node.semaphoreAll.release()
+
+    # loop.run_forever()
