@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
-from random import randint
+import os
 import time
+from random import randint
 
 nb_node = -1
 
@@ -30,11 +31,9 @@ class Node(object):
     # Rule 1
     def alliance(self):
         if self.m != self.pm_compute():
-            print("random selected id : " + str(self.id_number))
-            print("random rule : Alliance")
+            self.m = self.pm_compute()
             self.print_state()
             print("--------------------------------------------\n")
-            self.m = self.pm_compute()
 
     # Rule 2
     def wedding(self):
@@ -42,11 +41,9 @@ class Node(object):
             for jNeigh in self.neigh:
                 neighbour = Node.instances[jNeigh]
                 if neighbour.p == self.id_number:
-                    print("random selected id : " + str(self.id_number))
-                    print("random rule : Wedding")
+                    self.p = neighbour.id_number
                     self.print_state()
                     print("--------------------------------------------\n")
-                    self.p = neighbour.id_number
                     return
 
     # Rule 3
@@ -57,13 +54,12 @@ class Node(object):
                 if neighbour.p == self.id_number:
                     return
             for j in self.neigh:
-                neighbour = Node.instances[k]
+                neighbour = Node.instances[j]
                 if neighbour.p is None and neighbour.id_number > self.id_number and not neighbour.m:
-                    print("random selected id : " + str(self.id_number))
-                    print("random rule : Seduction")
+                    self.p = self.max_seduction()
                     self.print_state()
                     print("--------------------------------------------\n")
-                    self.p = self.max_seduction()
+                    return
 
     # Rule 3 bis
     def max_seduction(self):
@@ -79,12 +75,11 @@ class Node(object):
     def divorce(self):
         if self.p is not None:
             j = Node.instances[self.p]
-            if self.m == self.pm_compute() and self.p is not None and j.p != self.id_number and (j.m or j.id_number <= self.id_number):
-                print("random selected id : " + str(self.id_number))
-                print("random rule : Divorce")
+            if self.m == self.pm_compute() and self.p is not None and j.p != self.id_number and (
+                j.m or j.id_number <= self.id_number):
+                self.p = None
                 self.print_state()
                 print("--------------------------------------------\n")
-                self.p = None
 
     def get_val(self):
         """get val of a node"""
@@ -94,22 +89,27 @@ class Node(object):
         """printState node state"""
         for i in range(nb_tab):
             print("\t", end='')
-        print("id: " + str(self.id_number) + ", M: " + str(self.m) + ", P: " + str(self.p) + ", Neigh: " + str(self.neigh))
-
+        print("id: " + str(self.id_number) + ", M: " + str(self.m) + ", P: " + str(self.p) + ", Neigh: " + str(
+            self.neigh))
 
     def update(self):
         """update val of a node"""
 
         selected_rule = randint(1, 4)
-        # print("selected_rule : " + str(selected_rule))
+        print("node id : " + str(self.id_number) + " | rule id : " + str(selected_rule), end='')
         if selected_rule == 1:
+            print(" ==> Alliance")
             self.alliance()
         elif selected_rule == 2:
+            print(" ==> Wedding")
             self.wedding()
         elif selected_rule == 3:
+            print(" ==> Seduction")
             self.seduction()
         else:
+            print(" ==> Divorce")
             self.divorce()
+        print()
 
     def read_graph_file(file_name, mode):
         config_file = open(file_name, mode)
@@ -129,7 +129,7 @@ class Node(object):
                 # Add node 1
                 if a not in existing_nodes_id:
                     node = Node(a, [b])
-                    Node.instances[a] =  node
+                    Node.instances[a] = node
                     existing_nodes_id.append(a)
                 else:
                     Node.instances[a].neigh.append(b)
@@ -137,7 +137,7 @@ class Node(object):
                 # Add node 2
                 if b not in existing_nodes_id:
                     node = Node(b, [a])
-                    Node.instances [b] =  node
+                    Node.instances[b] = node
                     existing_nodes_id.append(b)
                 else:
                     print(a)
@@ -146,8 +146,10 @@ class Node(object):
 
 
 if __name__ == '__main__':
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
     # Read and make graph structure
-    Node.read_graph_file('graphe_config.txt', 'r')
+    Node.read_graph_file(dir_path + '/graphe_config.txt', 'r')
 
     print("===== Graph configuration ====================")
     for node in Node.instances.values():
@@ -158,6 +160,4 @@ if __name__ == '__main__':
     while True:
         ID = randint(1, nb_node)
         Node.instances[ID].update()
-        # time.sleep(1)
-
-
+        time.sleep(0.05)
