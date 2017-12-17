@@ -93,24 +93,29 @@ class Node(object):
             self.neigh))
 
     def update(self):
-        """update val of a node"""
+        """
+            update val of a node
+        """
+        continue_update = Node.continue_loop()
+        if continue_update:
+            selected_rule = randint(1, 4)
+            print("node id : " + str(self.id_number) + " | rule id : " + str(selected_rule), end='')
+            if selected_rule == 1:
+                print(" ==> Alliance")
+                self.alliance()
+            elif selected_rule == 2:
+                print(" ==> Wedding")
+                self.wedding()
+            elif selected_rule == 3:
+                print(" ==> Seduction")
+                self.seduction()
+            else:
+                print(" ==> Divorce")
+                self.divorce()
+            print()
+        return continue_update
 
-        selected_rule = randint(1, 4)
-        print("node id : " + str(self.id_number) + " | rule id : " + str(selected_rule), end='')
-        if selected_rule == 1:
-            print(" ==> Alliance")
-            self.alliance()
-        elif selected_rule == 2:
-            print(" ==> Wedding")
-            self.wedding()
-        elif selected_rule == 3:
-            print(" ==> Seduction")
-            self.seduction()
-        else:
-            print(" ==> Divorce")
-            self.divorce()
-        print()
-
+    @staticmethod
     def read_graph_file(file_name, mode):
         config_file = open(file_name, mode)
         config_array = config_file.readlines()
@@ -144,20 +149,50 @@ class Node(object):
                     print(b)
                     Node.instances[b].neigh.append(a)
 
+    @staticmethod
+    def continue_loop():
+        """"
+            :return false if nb Node with M properties at "True" is >= nb_node-1
+            :return true otherwise
+
+        """
+        count = 0
+        for node_v in Node.instances.values():
+            if node_v.m:
+                count += 1
+        if nb_node%2 == 0: # even number
+            res = (count < len (Node.instances))
+        else: # not even number
+            res = (count < len(Node.instances) - 1)
+        return res
+
 
 if __name__ == '__main__':
+    continue_loop = True
+    count_loop = 0
     dir_path = os.path.dirname(os.path.realpath(__file__))
-
     # Read and make graph structure
     Node.read_graph_file(dir_path + '/graphe_config.txt', 'r')
 
-    print("===== Graph configuration ====================")
+    print("===== Graph Begin configuration ====================")
     for node in Node.instances.values():
         node.print_state()
     print("==============================================\n")
 
     print("---- Execution -------------------------------\n")
-    while True:
+    while continue_loop and count_loop < 10000:
+        if count_loop%1000 == 0:
+            print("===== Graph " + str(count_loop) + " iterate configuration ====================")
+            for node in Node.instances.values():
+                node.print_state()
+            print("==============================================\n")
+
         ID = randint(1, nb_node)
-        Node.instances[ID].update()
-        time.sleep(0.05)
+        continue_loop = Node.instances[ID].update()
+        count_loop += 1
+        # time.sleep(0.005)
+
+
+    print("===== Graph Final configuration ====================")
+    for node in Node.instances.values():
+        node.print_state()
