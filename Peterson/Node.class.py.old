@@ -109,7 +109,7 @@ class Node(threading.Thread):
             else:
                 self.state=BEATEN
 
-            self.printState(3)
+            self.print_state(3)
 
     def printState(self, nb_tab = 0):
         """print node state"""

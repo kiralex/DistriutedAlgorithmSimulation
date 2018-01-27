@@ -26,6 +26,7 @@ class Node(Thread):
     nbConnectedLock = Lock()
     nbConnected = 0
 
+
     def __init__(self, id_number, candidate):
         Thread.__init__(self)
 
