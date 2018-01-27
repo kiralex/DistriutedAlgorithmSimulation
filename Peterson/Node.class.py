@@ -1,15 +1,9 @@
 #!/usr/bin/python3
 
 import logging
-import pickle
-import time
-import sys
-import traceback
-import signal
-from struct import pack, unpack
-from threading import Lock, Thread
-from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
 import coloredlogs
+import pickle
+from threading import Lock, Thread
 import zmq
 
 #  to color error and debug output
@@ -42,7 +36,7 @@ class Node(Thread):
         self.win = None
         self.state = None
         self.candidate = candidate
-        
+
         self.server_port = 20000 + id_number
         self.client_port = 20000 + ((self.id_number + 1) % NB)
 
@@ -52,7 +46,6 @@ class Node(Thread):
         self.server_socket.bind("tcp://*:%s" % str(self.server_port))
         self.socket_client.connect("tcp://127.0.0.1:%s" %
                                    str(self.client_port))
-
 
     def send(self, data):
         print(str(self.id_number) + " : j'envoi " + str(data))
