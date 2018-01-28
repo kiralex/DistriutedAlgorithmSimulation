@@ -23,7 +23,6 @@ class Node(object):
         self.nb = {}
         self.nDis = {}
 
-
     def initialize(self):
         for w in self.neigh:
             self.nDis[w] = {}
@@ -40,7 +39,8 @@ class Node(object):
         self.nb[self.id_number] = "local"
 
         for w in self.neigh:
-            self.send(w, { "type": "myDist", "v": self.id_number, "d": 0, "w": self.id_number})
+            self.send(w, {"type": "myDist", "v": self.id_number,
+                          "d": 0, "w": self.id_number})
 
     def printState(self):
         print("id:\t%d" % self.id_number)
@@ -49,25 +49,23 @@ class Node(object):
         print("nDis:")
         pp.pprint(self.nDis)
         print()
-        
+
     def send(self, dest, msg):
         Node.instances[dest].evts.append(msg)
         cprint(str(self.id_number) + " -> " +
-              str(dest) + ": \t " + str(msg), "green")
+               str(dest) + ": \t " + str(msg), "green")
 
     def recv(self):
         if len(self.evts) == 0:
-            return False 
+            return False
 
         msg = self.evts.pop(0)
         if msg["type"] == "myDist":
             return self.myDist(msg)
-        
 
     def myDist(self, msg):
         self.nDis[msg["w"]][msg["v"]] = msg["d"]
         return self.recompute(msg["v"])
-
 
     def recompute(self, v):
         old_dv = self.d[v]
@@ -79,19 +77,25 @@ class Node(object):
         else:
             mini = NB_NODE
             vois = None
-            for key, val in self.nDis.items():
-                if val[v] < mini:
-                    mini = val[v]
-                    vois = key
+
+            for k in self.neigh:
+                if self.nDis[k][v] < mini:
+                    mini = self.nDis[k][v]
+                    vois = k
+
+            # for key, val in self.nDis.items():
+            #     if val[v] < mini:
+            #         mini = val[v]
+            #         vois = key
             d = 1+mini
-            
+
             if d < NB_NODE:
                 self.d[v] = d
                 self.nb[v] = vois
             else:
                 self.d[v] = NB_NODE
                 self.nb[v] = None
-            
+
         if old_dv != self.d[v]:
             for x in self.neigh:
                 self.send(x, {"type": "myDist", "v": v,
@@ -99,6 +103,19 @@ class Node(object):
             return True
 
         return False
+
+    def fail(self, w):
+        if w in self.neigh:
+            self.neigh.remove(w)
+            for v in range(1, NB_NODE+1):
+                self.recompute(v)
+
+    def repair(self, w):
+        self.neigh.append(w)
+        for v in range(1, NB_NODE+1):
+            self.nDis[w][v] = NB_NODE
+            self.send(w, {"type": "myDist", "v": v,
+                          "d": self.d[v], "w": self.id_number})
 
 
     @staticmethod
@@ -142,6 +159,19 @@ class Node(object):
 
         return maxi
 
+    def loop_all_events():
+        while Node.max_nb_events() > 0:
+            msg_env = False
+            for k, node in Node.instances.items():
+                if node.recv() and not msg_env:
+                    msg_env = True
+
+            if msg_env:
+                print()
+
+        print("==============================================\n")
+
+
 def main():
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -151,21 +181,26 @@ def main():
     for k, node in Node.instances.items():
         node.initialize()
     print()
+    
+    Node.loop_all_events()
 
-    while Node.max_nb_events() > 0:
-        msg_env = False
-        for k, node in Node.instances.items():
-            if node.recv() and not msg_env:
-                msg_env = True
-
-        if msg_env:
-            print()
-
-    print("==============================================\n")
 
     for k, node in sorted(Node.instances.items()):
         node.printState()
+        
+    Node.instances[1].fail(3)
+    Node.instances[3].fail(1)
+    Node.loop_all_events()
+    
+    for k, node in sorted(Node.instances.items()):
+        node.printState()
 
+    Node.instances[1].repair(3)
+    Node.instances[3].repair(1)
+    Node.loop_all_events()
+
+    for k, node in sorted(Node.instances.items()):
+        node.printState()
 
 
 main()
